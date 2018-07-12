@@ -57,6 +57,8 @@ function saveInfo(info) {
   GM.setValue('album', info.album);
   GM.setValue('Year', info.year);
   GM.setValue('desc', markup);
+
+  console.log(GM.listValues());
 }
 
 function generateInfo() {
@@ -102,6 +104,7 @@ function initBandcamp() {
 }
 
 function initRedacted() {
+  console.log(GM.listValues());
   $('#year').prop('value', GM.getValue('year'));
 }
 
