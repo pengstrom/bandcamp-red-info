@@ -61,7 +61,7 @@ function saveInfo(info) {
   ]).then(openUploadTab);
 }
 
-async function openUploadTab() {
+function openUploadTab() {
   GM.listValues().then(console.log);
   var uploadUrl = 'https://redacted.ch/upload.php';
   GM.openInTab(uploadUrl);
@@ -105,7 +105,7 @@ function initBandcamp() {
   $('#track_table').before(input);
 }
 
-async function initRedacted() {
+function initRedacted() {
   GM_log('Detected Redacted');
   GM.listValues().then(console.log);
   GM.getValue('year').then((val) => {
