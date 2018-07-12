@@ -96,6 +96,7 @@ function generateInfo() {
 }
 
 function initBandcamp() {
+  GM_log('Detected Bandcamp');
 	var input=document.createElement("input");
 	input.type="button";
 	input.value="Generate description";
@@ -106,6 +107,7 @@ function initBandcamp() {
 }
 
 function initRedacted() {
+  GM_log('Detected Redacted');
   console.log(await GM.listValues());
   GM.getValue('year').then((val) => {
     $('#year').prop('value', val);
@@ -113,6 +115,7 @@ function initRedacted() {
 }
 
 $(document).ready(function () {  
+  GM_log('Running Helper');
   var current = location.href;
   if (current.indexOf('bandcamp') !== -1) {
     initBandcamp();
