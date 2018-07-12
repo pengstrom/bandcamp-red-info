@@ -58,10 +58,11 @@ function saveInfo(info) {
     , GM.setValue('album', info.album)
     , GM.setValue('Year', info.year)
     , GM.setValue('desc', markup)
-  ]).then(openUploadTab)
+  ]).then(openUploadTab);
 }
 
-function openUploadTab() {
+async function openUploadTab() {
+  console.log(await GM.listValues);
   var uploadUrl = 'https://redacted.ch/upload.php';
   GM.openInTab(uploadUrl);
 }
@@ -90,8 +91,6 @@ function generateInfo() {
     artist: artist
   };
   
-  console.log(info);
-  
   saveInfo(info);
 }
 
@@ -106,7 +105,7 @@ function initBandcamp() {
   $('#track_table').before(input);
 }
 
-function initRedacted() {
+async function initRedacted() {
   GM_log('Detected Redacted');
   console.log(await GM.listValues());
   GM.getValue('year').then((val) => {
