@@ -53,12 +53,17 @@ function trToTrack(idx, tr) {
 function saveInfo(info) {
   var markup = yadg(info);
 
-  GM.setValue('artist', info.artist);
-  GM.setValue('album', info.album);
-  GM.setValue('Year', info.year);
-  GM.setValue('desc', markup);
+  Promise.all(
+    [ GM.setValue('artist', info.artist)
+    , GM.setValue('album', info.album)
+    , GM.setValue('Year', info.year)
+    , GM.setValue('desc', markup)
+  ]).then(openUploadTab)
+}
 
-  console.log(GM.listValues());
+function openUploadTab() {
+  var uploadUrl = 'https://redacted.ch/upload.php';
+  GM.openInTab(uploadUrl);
 }
 
 function generateInfo() {
@@ -88,9 +93,6 @@ function generateInfo() {
   console.log(info);
   
   saveInfo(info);
-
-  var uploadUrl = 'https://redacted.ch/upload.php';
-  GM.openInTab(uploadUrl);
 }
 
 function initBandcamp() {
@@ -104,8 +106,10 @@ function initBandcamp() {
 }
 
 function initRedacted() {
-  console.log(GM.listValues());
-  $('#year').prop('value', GM.getValue('year'));
+  console.log(await GM.listValues());
+  GM.getValue('year').then((val) => {
+    $('#year').prop('value', val);
+  });
 }
 
 $(document).ready(function () {  
