@@ -1,10 +1,15 @@
 // ==UserScript==
 // @version 2
 // @name Bandcamp upload helper
+// @description Bandcamp helper for getting info to RED
 // @include http*://*.bandcamp.com/album/*
 // @include http*://*.redacted.ch/upload.php
 // @grant GM.xmlHttpRequest
 // @grant GM_xmlHttpRequest
+// @grant GM.openInTab
+// @grant GM.getValue
+// @grant GM.setValue
+// @grant GM.listValues
 // @require http://code.jquery.com/jquery-latest.js
 // ==/UserScript==
 
@@ -45,41 +50,23 @@ function trToTrack(idx, tr) {
   };
 }
 
-function getUploadHtml(onload, onerror) {
-  var uploadUrl = 'https://redacted.ch/upload.php';
-  var setup = {
-    url: uploadUrl,
-    onload: onload,
-    onerror: onerror,
-    method: 'GET'
-  };
+function saveInfo(info) {
+  var markup = yadg(info);
 
-  if (typeof(GM) == 'object' && GM.xmlHttpRequest) {
-    GM.xmlHttpRequest(setup);
-  } else if (typeof(GM_xmlHttpRequest) == 'function') {
-    GM_xmlHttpRequest(setup);
-  } else {
-    alert('Error: GM xmlHttpRequest not available');
-  }
+  GM.setValue('artist', info.artist);
+  GM.setValue('album', info.album);
+  GM.setValue('Year', info.year);
+  GM.setValue('desc', markup);
 }
 
-function uploadWindow(res) {
-  var w = window.open();
-  w.document.write(res.responseText);
-}
-
-function alertHtml(res) {
-  console.log('Error', res.responseText);
-}
-
-function generateMarkup() {
+function generateInfo() {
 	var tracks = $('#track_table > tbody > tr.track_row_view').map(trToTrack).get();
   
   var description = $('div[itemprop=description]').text().replace(/[\n\r][\n\r][\n\r][\n\r]/g, '\n\n');
   
   var year = $('meta[itemprop=datePublished]').prop('content').substring(0,4);
   
-  var title = $('h2[itemprop=name]').text().trim();
+  var album = $('h2[itemprop=name]').text().trim();
   
   var artist = $('span[itemprop=byArtist] > a').text().trim();
   
@@ -92,23 +79,39 @@ function generateMarkup() {
     desc: description,
     url: window.location.href,
     year: year,
-    title: title,
+    album: album,
     artist: artist
   };
   
   console.log(info);
   
-  var markup = yadg(info);
-  
-  alert(markup);
+  saveInfo(info);
+
+  var uploadUrl = 'https://redacted.ch/upload.php';
+  GM.openInTab(uploadUrl);
 }
 
-$(document).ready(function () {  
+function initBandcamp() {
 	var input=document.createElement("input");
 	input.type="button";
 	input.value="Generate description";
-	input.onclick = generateMarkup;
+	input.onclick = generateInfo;
 	input.setAttribute("style", "font-size:18px;margin-bottom:1rem;top:120px;right:40px;");
   
   $('#track_table').before(input);
+}
+
+function initRedacted() {
+  $('#year').prop('value', GM.getValue('year'));
+}
+
+$(document).ready(function () {  
+  var current = location.href;
+  if (current.indexOf('bandcamp') !== -1) {
+    initBandcamp();
+  } else if (current.indexOf('redacted') !== -1) {
+    initRedacted();
+  } else {
+    alert('Error: href mismatch.');
+  }
 });
