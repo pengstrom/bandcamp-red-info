@@ -1,18 +1,23 @@
 // ==UserScript==
-// @version 2
+// @version 3
 // @name Bandcamp upload helper
-// @description Bandcamp helper for getting info to RED
+// @description Bandcamp helper for getting info to RED uploads
 // @include http*://*.bandcamp.com/album/*
-// @include http*://*.redacted.ch/upload.php
-// @grant GM.xmlHttpRequest
-// @grant GM_xmlHttpRequest
+// @include http*://*redacted.ch/upload.php*_buh*
 // @grant GM.openInTab
 // @grant GM.getValue
 // @grant GM.setValue
-// @grant GM.listValues
 // @require http://code.jquery.com/jquery-latest.js
+// @namespace https://greasyfork.org/users/195861
+// @downloadURL none
 // ==/UserScript==
 
+// Use a unique URL parameter to know when to insert into upload.php
+var urlIdentifier = '_buh';
+var uploadUrl = 'https://redacted.ch/upload.php?' + urlIdentifier + '=true';
+
+
+// Generate the description from the Bandcamp description and tracklist
 function yadgTrack(track) {
   return '[b]' + track.num + '[/b]. ' + track.name + ' [i](' + track.duration + ')[/i]';
 }
@@ -37,6 +42,8 @@ function yadg(info) {
   return res;
 }
 
+
+// Extract info from each track on webpage
 function trToTrack(idx, tr) {
   var tracknum = $(tr).find('td:nth-child(2)').text().trim();
   tracknum = tracknum.substring(0, tracknum.length - 1);
@@ -48,23 +55,6 @@ function trToTrack(idx, tr) {
     name: name,
     duration: duration
   };
-}
-
-function saveInfo(info) {
-  var markup = yadg(info);
-
-  Promise.all(
-    [ GM.setValue('artist', info.artist)
-    , GM.setValue('album', info.album)
-    , GM.setValue('Year', info.year)
-    , GM.setValue('desc', markup)
-  ]).then(openUploadTab);
-}
-
-function openUploadTab() {
-  GM.listValues().then(console.log);
-  var uploadUrl = 'https://redacted.ch/upload.php';
-  GM.openInTab(uploadUrl);
 }
 
 function generateInfo() {
@@ -91,11 +81,32 @@ function generateInfo() {
     artist: artist
   };
   
+  console.log(info);
+  
   saveInfo(info);
+
+  GM.openInTab(uploadUrl);
 }
 
+
+// Save the info locally to be used on the upload page
+function saveInfo(info) {
+  var markup = yadg(info);
+
+  Promise.all(
+    [ GM.setValue('artist', info.artist)
+  	, GM.setValue('album', info.album)
+  	, GM.setValue('year', info.year)
+  	, GM.setValue('desc', markup)
+  ]).then((vals) => GM.listValues()).then((vals) => {
+    console.log('Save', vals);
+    openUploadTab();
+  });
+}
+
+
+// On Bandcamp, get info
 function initBandcamp() {
-  GM_log('Detected Bandcamp');
 	var input=document.createElement("input");
 	input.type="button";
 	input.value="Generate description";
@@ -105,22 +116,47 @@ function initBandcamp() {
   $('#track_table').before(input);
 }
 
+
+// On RED, insert info
 function initRedacted() {
-  GM_log('Detected Redacted');
-  GM.listValues().then(console.log);
-  GM.getValue('year').then((val) => {
-    $('#year').prop('value', val);
+  Promise.all(
+    [ GM.getValue('year')
+    , GM.getValue('artist')
+    , GM.getValue('album')
+    , GM.getValue('desc')
+  ]).then((vals) => {
+    console.log(vals);
+  	$('#year').prop('value', vals[0]);
+    $('#artist').prop('value', vals[1]);
+    $('#title').prop('value', vals[2]);
+    $('#album_desc').prop('value', vals[3]);
   });
+  
+  $('#releasetype > option:nth-child(2)').prop('selected', true);
+  $('#format').val('FLAC');
+  $('#bitrate').val('Lossless');
+  $('#media').val('WEB');
 }
 
+
+// Check where the script is running
+function isOnBandcamp() {
+  return location.href.indexOf('bandcamp') !== -1;
+}
+
+function isOnRedacted() {
+  return location.href.indexOf('redacted') !== -1;
+}
+
+
+// Execute when page is finished loading
 $(document).ready(function () {  
-  GM_log('Running Helper');
   var current = location.href;
-  if (current.indexOf('bandcamp') !== -1) {
+  if (isOnBandcamp()) {
     initBandcamp();
-  } else if (current.indexOf('redacted') !== -1) {
+  } else if (isOnRedacted()) {
     initRedacted();
   } else {
-    alert('Error: href mismatch.');
+    console.error('Bandcamp Upload Helper error: href mismatch.');
   }
 });
