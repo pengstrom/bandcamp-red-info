@@ -8,12 +8,6 @@
 // @require http://code.jquery.com/jquery-latest.js
 // ==/UserScript==
 
-
-
-console.log(GM);
-
-
-
 function yadgTrack(track) {
   return '[b]' + track.num + '[/b]. ' + track.name + ' [i](' + track.duration + ')[/i]';
 }
@@ -106,9 +100,7 @@ function generateMarkup() {
   
   var markup = yadg(info);
   
-  //alert(markup);
-
-  getUploadHtml(uploadWindow, alertHtml);
+  alert(markup);
 }
 
 $(document).ready(function () {  
