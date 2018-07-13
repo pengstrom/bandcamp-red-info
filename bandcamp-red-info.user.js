@@ -7,6 +7,8 @@
 // @grant GM.openInTab
 // @grant GM.getValue
 // @grant GM.setValue
+// @grant GM.xmlHttpRequest
+// @require https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @require http://code.jquery.com/jquery-latest.js
 // @namespace https://greasyfork.org/users/195861
 // @downloadURL none
@@ -16,6 +18,9 @@
 var urlIdentifier = '_buh';
 var uploadUrl = 'https://redacted.ch/upload.php?' + urlIdentifier + '=true';
 
+var tagQueryUrl = 'https://redacted.ch/torrents.php?action=autocomplete_tag&query=';
+
+var validTags = [];
 
 // Generate the description from the Bandcamp description and tracklist
 function yadgTrack(track) {
@@ -40,6 +45,51 @@ function yadg(info) {
   res += 'More information: [url]' + info.url + '[/url]';
   
   return res;
+}
+
+
+// Check Bandcamp tag for valid RED tag
+function addValidTags(tags) {
+  $.map(tags, validTag)
+}
+
+function validTag(tag) {
+  var details = {
+    method: GET,
+    url: tagQueryUrl + tag,
+    onload: receiveTagResult
+  };
+
+  GM.xmlHttpRequest(details);
+}
+
+function receiveTagResult(res) {
+  var payload = JSON.parse(res.responseText);
+  var suggestions = payload.suggestions;
+  var tag = payload.query;
+
+  if (suggestions.length === 0) {
+    return;
+  }
+
+  if (suggestions[0].value !== tag) {
+    return;
+  }
+
+  validTags.append(tag);
+  updateTags();
+}
+
+function redifyTag(tag) {
+  return tag.split(/[\s-]+/g).join('.');
+}
+
+function updateTags() {
+  var tagInput = $('#tags');
+
+  var tagString = validTags.join(',');
+
+  $(tagInput).val(tagString);
 }
 
 
@@ -71,6 +121,8 @@ function generateInfo() {
   if (artist === 'Various Artists') {
   	artist = $('#band-name-location > span .title').text().trim();
   }
+
+  var tags = $('a .tag').map((idx, el) => redifyTag($(el).text().trim())).get();
   
   var info = {
     tracks: tracks,
@@ -78,10 +130,9 @@ function generateInfo() {
     url: window.location.href,
     year: year,
     album: album,
-    artist: artist
+    artist: artist,
+    tags: tags
   };
-  
-  console.log(info);
   
   saveInfo(info);
 
@@ -97,9 +148,9 @@ function saveInfo(info) {
     [ GM.setValue('artist', info.artist)
   	, GM.setValue('album', info.album)
   	, GM.setValue('year', info.year)
-  	, GM.setValue('desc', markup)
+    , GM.setValue('desc', markup)
+    , GM.setValue('tags', JSON.stringify(info.tags))
   ]).then((vals) => GM.listValues()).then((vals) => {
-    console.log('Save', vals);
     openUploadTab();
   });
 }
@@ -124,12 +175,14 @@ function initRedacted() {
     , GM.getValue('artist')
     , GM.getValue('album')
     , GM.getValue('desc')
+    , GM.getValue('tags')
   ]).then((vals) => {
-    console.log(vals);
   	$('#year').prop('value', vals[0]);
     $('#artist').prop('value', vals[1]);
     $('#title').prop('value', vals[2]);
     $('#album_desc').prop('value', vals[3]);
+
+    addValidTags(JSON.parse(vals[4]));
   });
   
   $('#releasetype > option:nth-child(2)').prop('selected', true);
